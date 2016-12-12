@@ -1,17 +1,18 @@
 SHELL = /bin/bash
-OS := $(shell uname)
+OS := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 
 all: default
 
-deps:
-ifeq ($(OS),Darwin)
+darwin:
 	@which -s brew || (echo "Please install brew"; exit 1)
 	@which -s aws || brew install aws
-else
+
+linux:
 	@which pip || sudo apt-get -y install python-pip
 	@which aws || sudo pip install awscli
 	@which jq || sudo apt-get -y install jq
-endif
+
+deps: $(OS)
 
 ## Start a clean shell
 default:
