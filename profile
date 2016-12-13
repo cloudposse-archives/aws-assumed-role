@@ -25,10 +25,15 @@ function console-prompt() {
   OK_COLOR="\033[32;01m"
   ERROR_COLOR="\033[31;01m"
   PROMPT_COLOR="\033[01m"
+  OS=$(uname)
 
 
   if [ -n "${AWS_SESSION_EXPIRATION}" ]; then
-    export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date -j -f "%Y-%m-%dT%H:%M:%SZ" "${AWS_SESSION_EXPIRATION}" +%s)
+    if [ "${OS}" == "Darwin" ]; then
+      export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date -j -f "%Y-%m-%dT%H:%M:%SZ" "${AWS_SESSION_EXPIRATION}" +%s)
+    else
+      export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date --date="${AWS_SESSION_EXPIRATION}" +%s)
+    fi
   else
     export AWS_SESSION_EXPIRATION_SECONDS=0
   fi
