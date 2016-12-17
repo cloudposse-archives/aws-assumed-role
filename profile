@@ -32,7 +32,11 @@ function console-prompt() {
     if [ "${OS}" == "Darwin" ]; then
       export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date -j -f "%Y-%m-%dT%H:%M:%SZ" "${AWS_SESSION_EXPIRATION}" +%s)
     else
-      export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date --date="${AWS_SESSION_EXPIRATION}" +%s)
+      if [[ "`date --help 2>&1|head -1`" =~ BusyBox ]]; then
+        export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date -D "%Y-%m-%dT%H:%M:%SZ" --date="${AWS_SESSION_EXPIRATION}" +%s)
+      else
+        export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date --date="${AWS_SESSION_EXPIRATION}" +%s)
+      fi
     fi
   else
     export AWS_SESSION_EXPIRATION_SECONDS=0
