@@ -127,9 +127,9 @@ function assume-role() {
 	# Reset the environment, or the awscli call will fail
   unset AWS_SESSION_TOKEN 
   unset AWS_SECURITY_TOKEN
-  export AWS_REGION=$(aws configure get region --profile $AWS_DEFAULT_PROFILE)
-  export AWS_ROLE_ARN=$(aws configure get role_arn --profile $AWS_DEFAULT_PROFILE)
-  export AWS_MFA_SERIAL=$(aws configure get mfa_serial --profile $AWS_DEFAULT_PROFILE)
+  export AWS_REGION=$(aws configure get region --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
+  export AWS_ROLE_ARN=$(aws configure get role_arn --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
+  export AWS_MFA_SERIAL=$(aws configure get mfa_serial --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
 
   if [ -z "$AWS_REGION" ]; then
     echo "region not set for $AWS_DEFAULT_PROFILE profile"
