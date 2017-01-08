@@ -60,7 +60,7 @@ function console-prompt() {
     else
       ROLE_COLOR="$OK_COLOR"
     fi
-    export ROLE_PROMPT="(assume-role ${ROLE_COLOR}${AWS_DEFAULT_PROFILE}${NO_COLOR}:${AWS_SESSION_TTL_FMT})"
+    export ROLE_PROMPT="(assume-role \[${ROLE_COLOR}\]${AWS_DEFAULT_PROFILE}\[${NO_COLOR}\]:${AWS_SESSION_TTL_FMT})"
   fi
   export PS1="$ROLE_PROMPT \W> "
 }

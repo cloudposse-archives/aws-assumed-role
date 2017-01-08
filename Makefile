@@ -6,6 +6,7 @@ all: default
 darwin:
 	@which -s brew || (echo "Please install brew"; exit 1)
 	@which -s aws || brew install aws
+	@which -s jq || brew install jq
 
 linux:
 	@which pip || sudo apt-get -y install python-pip
