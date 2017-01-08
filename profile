@@ -25,10 +25,19 @@ function console-prompt() {
   OK_COLOR="\033[32;01m"
   ERROR_COLOR="\033[31;01m"
   PROMPT_COLOR="\033[01m"
+  OS=$(uname)
 
 
   if [ -n "${AWS_SESSION_EXPIRATION}" ]; then
-    export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date -j -f "%Y-%m-%dT%H:%M:%SZ" "${AWS_SESSION_EXPIRATION}" +%s)
+    if [ "${OS}" == "Darwin" ]; then
+      export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date -j -f "%Y-%m-%dT%H:%M:%SZ" "${AWS_SESSION_EXPIRATION}" +%s)
+    else
+      if [[ "`date --help 2>&1|head -1`" =~ BusyBox ]]; then
+        export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date -D "%Y-%m-%dT%H:%M:%SZ" --date="${AWS_SESSION_EXPIRATION}" +%s)
+      else
+        export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date --date="${AWS_SESSION_EXPIRATION}" +%s)
+      fi
+    fi
   else
     export AWS_SESSION_EXPIRATION_SECONDS=0
   fi
@@ -51,7 +60,7 @@ function console-prompt() {
     else
       ROLE_COLOR="$OK_COLOR"
     fi
-    export ROLE_PROMPT="(assume-role ${ROLE_COLOR}${AWS_DEFAULT_PROFILE}${NO_COLOR}:${AWS_SESSION_TTL_FMT})"
+    export ROLE_PROMPT="(assume-role \[${ROLE_COLOR}\]${AWS_DEFAULT_PROFILE}\[${NO_COLOR}\]:${AWS_SESSION_TTL_FMT})"
   fi
   export PS1="$ROLE_PROMPT \W> "
 }
@@ -122,9 +131,9 @@ function assume-role() {
 	# Reset the environment, or the awscli call will fail
   unset AWS_SESSION_TOKEN 
   unset AWS_SECURITY_TOKEN
-  export AWS_REGION=$(aws configure get region --profile $AWS_DEFAULT_PROFILE)
-  export AWS_ROLE_ARN=$(aws configure get role_arn --profile $AWS_DEFAULT_PROFILE)
-  export AWS_MFA_SERIAL=$(aws configure get mfa_serial --profile $AWS_DEFAULT_PROFILE)
+  export AWS_REGION=$(aws configure get region --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
+  export AWS_ROLE_ARN=$(aws configure get role_arn --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
+  export AWS_MFA_SERIAL=$(aws configure get mfa_serial --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
 
   if [ -z "$AWS_REGION" ]; then
     echo "region not set for $AWS_DEFAULT_PROFILE profile"
