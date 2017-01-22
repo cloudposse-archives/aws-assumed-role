@@ -1,6 +1,44 @@
 #!/bin/bash
 
+NO_COLOR="\033[0m"
+OK_COLOR="\033[32;01m"
+ERROR_COLOR="\033[31;01m"
+PROMPT_COLOR="\033[01m"
+
 export AWS_SESSION_DURATION=3600
+
+function prompt() {
+  if [ "${BASH_VERSINFO}" -lt 4 ]; then
+    echo "Bash Version >= 4 required (${BASH_VERSINFO} installed) for this feature"
+    exit 1
+  fi
+  local env=$1
+  local prompt=$2
+  local default_value=$3
+  local value
+
+  if [ -n "$prompt" ]; then
+    echo ">>> $prompt"
+  fi
+
+  # Use default value if empty
+  if [ -n "${!env}" ]; then
+    value=${!env};
+  else
+    value=${default_value}
+  fi
+  while true; do
+    echo -ne "${OK_COLOR}$env${NO_COLOR}"
+    read -e -i "$value" -p ": " $env
+    if [ -n "${!env}" ]; then
+      export $env
+      break
+    else
+      echo "<<< Value cannot be empty"
+    fi
+  done
+}
+
 
 ## Display an exit greeting
 function _exit() {
@@ -21,12 +59,7 @@ function init() {
 ## Calculate the current shell prompt 
 function console-prompt() {
   NOW=$(date +%s)
-  NO_COLOR="\033[0m"
-  OK_COLOR="\033[32;01m"
-  ERROR_COLOR="\033[31;01m"
-  PROMPT_COLOR="\033[01m"
   OS=$(uname)
-
 
   if [ -n "${AWS_SESSION_EXPIRATION}" ]; then
     if [ "${OS}" == "Darwin" ]; then
@@ -77,17 +110,46 @@ function help() {
   echo 'Available commands:'
   printf '  %-15s %s\n' 'leave-role' "Leave the current role; run this to release your session"
   printf '  %-15s %s\n' 'assume-role' "Assume a new role; run this to renew your session"
+  printf '  %-15s %s\n' 'setup-role' "Setup a new role; run this to configure your AWS profile"
   echo
 }
 
 function update_profile() {
   if [ -n "$AWS_PROFILE" ]; then
+    aws configure set region "$AWS_REGION" --profile $AWS_PROFILE
     aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID" --profile $AWS_PROFILE
     aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY" --profile $AWS_PROFILE
     aws configure set aws_session_token "$AWS_SECURITY_TOKEN" --profile $AWS_PROFILE
-    aws configure set region "$AWS_REGION" --profile $AWS_PROFILE
     aws configure set source_profile "$AWS_PROFILE" --profile $AWS_PROFILE
   fi
+}
+
+function setup-role() {
+  prompt AWS_PROFILE "What should we call this profile [no spaces]? (e.g. ops) " "ops"
+  prompt AWS_ACCOUNT_ID "What is your AWS Account ID? (e.g. 324149397721)" 
+  prompt AWS_IAM_USERNAME "What is your AWS IAM Username? (e.g. erik)" `whoami`
+  prompt AWS_IAM_ROLE "What is the IAM Role you wish to assume? (e.g. ops)" "ops"
+  prompt AWS_ACCESS_KEY_ID "What is your AWS Access Key ID? (e.g. ZSIKIY1ZX44WRKCLS3GB)"
+  prompt AWS_SECRET_ACCESS_KEY "What is your AWS Secret Access Key? (e.g. FW8qWWafMaUi+siNcRiawxr4GadKf6We1fl90G5x)"
+  prompt AWS_REGION "What default region do you want? (e.g. us-east-1)" "us-east-1"
+
+  AWS_IAM_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${AWS_IAM_ROLE}"
+  AWS_IAM_MFA_SERIAL="arn:aws:iam::${AWS_ACCOUNT_ID}:mfa/${AWS_IAM_USERNAME}"
+
+  aws configure set "profile.${AWS_PROFILE}.region" "$AWS_REGION"
+  aws configure set "profile.${AWS_PROFILE}.role_arn" "$AWS_IAM_ROLE_ARN"
+  aws configure set "profile.${AWS_PROFILE}.mfa_serial" "$AWS_IAM_MFA_SERIAL"
+  aws configure set "profile.${AWS_PROFILE}.source_profile" "$AWS_PROFILE"
+  aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID" --profile $AWS_PROFILE
+  aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY" --profile $AWS_PROFILE
+  echo "Profile $AWS_PROFILE created"  
+  unset AWS_PROFILE
+  unset AWS_DEFAULT_PROFILE
+  unset AWS_ACCESS_KEY_ID
+  unset AWS_SECRET_ACCESS_KEY
+  unset AWS_MFA_SERIAL
+  unset AWS_ROLE_ARN
+  unset AWS_REGION
 }
 
 ## Leave the currently assumed role
@@ -97,7 +159,7 @@ function leave-role() {
   fi
 
   if [ -n "${AWS_SESSION_TOKEN}" ]; then
-		unset AWS_DEFAULT_PROFILE
+    unset AWS_DEFAULT_PROFILE
     unset AWS_ACCESS_KEY_ID
     unset AWS_SECRET_ACCESS_KEY
     unset AWS_SESSION_TOKEN 
@@ -108,17 +170,17 @@ function leave-role() {
 
     # wipe out temporary session
     update_profile
-		unset AWS_PROFILE
+    unset AWS_PROFILE
 
-   else
+  else
     echo "No role currently assumed"
   fi
 }
 
 function assume-role() {
-	if [ -n "$1" ]; then
-		export AWS_DEFAULT_PROFILE=$1
-	fi
+    if [ -n "$1" ]; then
+      export AWS_DEFAULT_PROFILE=$1
+    fi
 
   if [ -z "$AWS_DEFAULT_PROFILE" ]; then
     echo "AWS_DEFAULT_PROFILE not set"
@@ -128,7 +190,7 @@ function assume-role() {
   echo "Preparing to assume role associated with $AWS_DEFAULT_PROFILE"
   export AWS_PROFILE="$AWS_DEFAULT_PROFILE-session"
 
-	# Reset the environment, or the awscli call will fail
+  # Reset the environment, or the awscli call will fail
   unset AWS_SESSION_TOKEN 
   unset AWS_SECURITY_TOKEN
   export AWS_REGION=$(aws configure get region --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
