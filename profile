@@ -142,13 +142,16 @@ function setup-role() {
   aws configure set "profile.${AWS_PROFILE}.source_profile" "$AWS_PROFILE"
   aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID" --profile $AWS_PROFILE
   aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY" --profile $AWS_PROFILE
+
   echo "Profile $AWS_PROFILE created"  
+
+  # Cleanup
   unset AWS_PROFILE
   unset AWS_DEFAULT_PROFILE
   unset AWS_ACCESS_KEY_ID
   unset AWS_SECRET_ACCESS_KEY
-  unset AWS_MFA_SERIAL
-  unset AWS_ROLE_ARN
+  unset AWS_IAM_MFA_SERIAL
+  unset AWS_IAM_ROLE_ARN
   unset AWS_REGION
 }
 
@@ -164,8 +167,8 @@ function leave-role() {
     unset AWS_SECRET_ACCESS_KEY
     unset AWS_SESSION_TOKEN 
     unset AWS_SECURITY_TOKEN
-    unset AWS_MFA_SERIAL
-    unset AWS_ROLE_ARN
+    unset AWS_IAM_MFA_SERIAL
+    unset AWS_IAM_ROLE_ARN
     unset AWS_REGION
 
     # wipe out temporary session
@@ -194,27 +197,27 @@ function assume-role() {
   unset AWS_SESSION_TOKEN 
   unset AWS_SECURITY_TOKEN
   export AWS_REGION=$(aws configure get region --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
-  export AWS_ROLE_ARN=$(aws configure get role_arn --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
-  export AWS_MFA_SERIAL=$(aws configure get mfa_serial --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
+  export AWS_IAM_ROLE_ARN=$(aws configure get role_arn --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
+  export AWS_IAM_MFA_SERIAL=$(aws configure get mfa_serial --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
 
   if [ -z "$AWS_REGION" ]; then
     echo "region not set for $AWS_DEFAULT_PROFILE profile"
     return 1
   fi
 
-  if [ -z "$AWS_ROLE_ARN" ]; then
+  if [ -z "$AWS_IAM_ROLE_ARN" ]; then
     echo "role_arn not set $AWS_DEFAULT_PROFILE profile"
     return 1
   fi
 
-  if [ -z "$AWS_MFA_SERIAL" ]; then
+  if [ -z "$AWS_IAM_MFA_SERIAL" ]; then
     echo "mfa_serial not set $AWS_DEFAULT_PROFILE profile"
     return 1
   fi
 
   echo "region=$AWS_REGION"
-  echo "role_arn=$AWS_ROLE_ARN"
-  echo "mfa_serial=$AWS_MFA_SERIAL"
+  echo "role_arn=$AWS_IAM_ROLE_ARN"
+  echo "mfa_serial=$AWS_IAM_MFA_SERIAL"
 
   until aws ec2 describe-regions > /dev/null; do
     echo "Retrying..."
