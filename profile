@@ -161,7 +161,7 @@ function leave-role() {
     find $HOME/.aws/cli/cache -name "${AWS_DEFAULT_PROFILE}*.json" -delete
   fi
 
-  if [ -n "${AWS_SESSION_TOKEN}" ]; then
+  if [ -n "${AWS_PROFILE}" ] || [ -n "${AWS_DEFAULT_PROFILE}" ]; then
     unset AWS_DEFAULT_PROFILE
     unset AWS_ACCESS_KEY_ID
     unset AWS_SECRET_ACCESS_KEY
