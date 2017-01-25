@@ -136,12 +136,14 @@ function setup-role() {
   AWS_IAM_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${AWS_IAM_ROLE}"
   AWS_IAM_MFA_SERIAL="arn:aws:iam::${AWS_ACCOUNT_ID}:mfa/${AWS_IAM_USERNAME}"
 
-  aws configure set "profile.${AWS_PROFILE}.region" "$AWS_REGION"
-  aws configure set "profile.${AWS_PROFILE}.role_arn" "$AWS_IAM_ROLE_ARN"
-  aws configure set "profile.${AWS_PROFILE}.mfa_serial" "$AWS_IAM_MFA_SERIAL"
-  aws configure set "profile.${AWS_PROFILE}.source_profile" "$AWS_PROFILE"
-  aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID" --profile $AWS_PROFILE
-  aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY" --profile $AWS_PROFILE
+  # When creating a new/non-existent profile, the `aws configure` command gets confused if `AWS_PROFILE` or `AWS_DEFAULT_PROFILE`
+  # are set to something which does not yet exist. Running it in `env` lets us sanify the environment. 
+  env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set "profile.${AWS_PROFILE}.region" "$AWS_REGION"
+  env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set "profile.${AWS_PROFILE}.role_arn" "$AWS_IAM_ROLE_ARN"
+  env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set "profile.${AWS_PROFILE}.mfa_serial" "$AWS_IAM_MFA_SERIAL"
+  env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set "profile.${AWS_PROFILE}.source_profile" "$AWS_PROFILE"
+  env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID" --profile $AWS_PROFILE
+  env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY" --profile $AWS_PROFILE
 
   echo "Profile $AWS_PROFILE created"  
 
