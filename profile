@@ -75,7 +75,7 @@ function console-prompt() {
     export AWS_SESSION_EXPIRATION_SECONDS=0
   fi
 
-  if [ $AWS_SESSION_EXPIRATION_SECONDS -gt 0 ]; then
+  if [ $AWS_SESSION_EXPIRATION_SECONDS -ge 0 ]; then
     export AWS_SESSION_TTL=$(($AWS_SESSION_EXPIRATION_SECONDS - ${NOW}))
     if [ $AWS_SESSION_TTL -le 0 ]; then
       AWS_SESSION_TTL_FMT="\[\033[5mexpired\033[0m\]"
