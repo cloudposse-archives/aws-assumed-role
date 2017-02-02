@@ -194,7 +194,7 @@ function assume-role() {
 
   aws configure list --profile ${AWS_DEFAULT_PROFILE} >/dev/null 2>&1
   if [ $? -ne 0 ]; then
-    echo "Profile for ${AWS_DEFAULT_PROFILE} not found"
+    echo "Profile for '${AWS_DEFAULT_PROFILE}' does not exist"
     return 1
   fi
 
