@@ -192,6 +192,12 @@ function assume-role() {
     return 1
   fi
 
+  aws configure list --profile ${AWS_DEFAULT_PROFILE} >/dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    echo "Profile for ${AWS_DEFAULT_PROFILE} not found"
+    return 1
+  fi
+
   echo "Preparing to assume role associated with $AWS_DEFAULT_PROFILE"
   export AWS_PROFILE="$AWS_DEFAULT_PROFILE-session"
 
