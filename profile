@@ -43,6 +43,7 @@ function prompt() {
 ## Display an exit greeting
 function _exit() {
   echo 'Goodbye'
+  exit 0
 }
 trap _exit EXIT
 
