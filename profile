@@ -7,6 +7,8 @@ PROMPT_COLOR="\033[01m"
 
 export AWS_SESSION_DURATION=3600
 
+which jq >/dev/null || (echo "Missing required 'jq' dependency"; exit 1)
+
 function prompt() {
   if [ "${BASH_VERSINFO}" -lt 4 ]; then
     echo "Bash Version >= 4 required (${BASH_VERSINFO} installed) for this feature"
@@ -241,10 +243,17 @@ function assume-role() {
     export AWS_SESSION_EXPIRATION=$(cat ${TMP_FILE} | jq -r ".Credentials.Expiration")
     export AWS_SECURITY_TOKEN=${AWS_SESSION_TOKEN}
     update_profile
+    write_credentials
     echo "You have assumed the role associated with $AWS_DEFAULT_PROFILE. It expires $AWS_SESSION_EXPIRATION."
   else
     echo "Failed to obtain temporary session for $AWS_DEFAULT_PROFILE"
   fi
 }
 
+function write_credentials() {
+  # Write credentials in a format compatible with http://169.254.169.254/latest/meta-data/iam/security-credentials/$role
+  # This can be used with `s3fs` to use an assumed role outside of AWS (with patch)
+  jq '.Credentials' < ${AWS_DATA_PATH}/cli/cache/${AWS_DEFAULT_PROFILE}--*.json \
+    > ${AWS_DATA_PATH}/cli/cache/${AWS_DEFAULT_PROFILE}
+}
 init $*
