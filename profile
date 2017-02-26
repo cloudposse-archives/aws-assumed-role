@@ -59,6 +59,19 @@ function init() {
   fi
 }
 
+# Sync Docker VM's hardware clock which can drift when host machine sleeps
+#   e.g. An error occurred (SignatureDoesNotMatch) when calling the AssumeRole operation:
+#        Signature expired: 20170103T233357Z is now earlier than 20170104T042623Z (20170104T044123Z - 15 min.)
+function sync_hwclock() {
+  if [ -f "/.dockerenv" ]; then
+    hwclock -s 2>/dev/null
+    if [ $? -ne 0 ]; then
+      echo "WARNING: unable to sync system time from hardware clock; you may encounter problems with signed requests as a result of time drift."
+    fi
+  fi
+}
+
+
 ## Calculate the current shell prompt 
 function console-prompt() {
   NOW=$(date +%s)
@@ -201,10 +214,12 @@ function assume-role() {
     return 1
   fi
 
+  sync_hwclock
+
   echo "Preparing to assume role associated with $AWS_DEFAULT_PROFILE"
-  export AWS_PROFILE="$AWS_DEFAULT_PROFILE-session"
 
   # Reset the environment, or the awscli call will fail
+  unset AWS_PROFILE
   unset AWS_SESSION_TOKEN 
   unset AWS_SECURITY_TOKEN
   export AWS_REGION=$(aws configure get region --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
@@ -237,6 +252,7 @@ function assume-role() {
 
   TMP_FILE=$(find $HOME/.aws/cli/cache -name "${AWS_DEFAULT_PROFILE}*.json" | head -1)
   if [ -f "$TMP_FILE" ]; then
+    export AWS_PROFILE="$AWS_DEFAULT_PROFILE-session"
     export AWS_ACCESS_KEY_ID=$(cat ${TMP_FILE} | jq -r ".Credentials.AccessKeyId")
     export AWS_SECRET_ACCESS_KEY=$(cat ${TMP_FILE} | jq -r ".Credentials.SecretAccessKey")
     export AWS_SESSION_TOKEN=$(cat ${TMP_FILE} | jq -r ".Credentials.SessionToken")
