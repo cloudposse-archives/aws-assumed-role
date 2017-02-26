@@ -179,20 +179,19 @@ function leave-role() {
     find $HOME/.aws/cli/cache -name "${AWS_DEFAULT_PROFILE}*.json" -delete
   fi
 
-  if [ -n "${AWS_PROFILE}" ] || [ -n "${AWS_DEFAULT_PROFILE}" ]; then
-    unset AWS_DEFAULT_PROFILE
-    unset AWS_ACCESS_KEY_ID
-    unset AWS_SECRET_ACCESS_KEY
-    unset AWS_SESSION_TOKEN 
-    unset AWS_SECURITY_TOKEN
-    unset AWS_IAM_MFA_SERIAL
-    unset AWS_IAM_ROLE_ARN
-    unset AWS_REGION
+  unset AWS_ACCESS_KEY_ID
+  unset AWS_SECRET_ACCESS_KEY
+  unset AWS_SESSION_TOKEN 
+  unset AWS_SECURITY_TOKEN
+  unset AWS_IAM_MFA_SERIAL
+  unset AWS_IAM_ROLE_ARN
+  unset AWS_REGION
+  unset AWS_DEFAULT_PROFILE
 
+  if [ -n "${AWS_PROFILE}" ]; then
     # wipe out temporary session
     update_profile
     unset AWS_PROFILE
-
   else
     echo "No role currently assumed"
   fi
@@ -208,6 +207,13 @@ function assume-role() {
     return 1
   fi
 
+  # Reset the environment, or the awscli call will fail
+  unset AWS_PROFILE
+  unset AWS_SESSION_TOKEN 
+  unset AWS_SECURITY_TOKEN
+  unset AWS_ACCESS_KEY_ID
+  unset AWS_SECRET_ACCESS_KEY
+
   aws configure list --profile ${AWS_DEFAULT_PROFILE} >/dev/null 2>&1
   if [ $? -ne 0 ]; then
     echo "Profile for '${AWS_DEFAULT_PROFILE}' does not exist"
@@ -218,10 +224,6 @@ function assume-role() {
 
   echo "Preparing to assume role associated with $AWS_DEFAULT_PROFILE"
 
-  # Reset the environment, or the awscli call will fail
-  unset AWS_PROFILE
-  unset AWS_SESSION_TOKEN 
-  unset AWS_SECURITY_TOKEN
   export AWS_REGION=$(aws configure get region --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
   export AWS_IAM_ROLE_ARN=$(aws configure get role_arn --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
   export AWS_IAM_MFA_SERIAL=$(aws configure get mfa_serial --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
