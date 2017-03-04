@@ -218,7 +218,12 @@ function assume-role() {
   unset AWS_ACCESS_KEY_ID
   unset AWS_SECRET_ACCESS_KEY
 
-  aws configure list --profile ${AWS_DEFAULT_PROFILE} >/dev/null 2>&1
+  if [ ! -f "${AWS_CONFIG_FILE}" ]; then
+    echo "AWS Configuration does not exist. Run \`setup-role\` or \`aws configure\`."
+    exit 1
+  fi
+
+  grep -q "\[profile ${AWS_DEFAULT_PROFILE}\]" "${AWS_CONFIG_FILE}"
   if [ $? -ne 0 ]; then
     echo "Profile for '${AWS_DEFAULT_PROFILE}' does not exist"
     return 1
