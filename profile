@@ -6,6 +6,8 @@ ERROR_COLOR="\033[31;01m"
 PROMPT_COLOR="\033[01m"
 
 export AWS_SESSION_DURATION=3600
+export NTP_SERVER=${NTP_SERVER:-pool.ntp.org}
+export NTPD=$(which ntpd)
 
 which jq >/dev/null || (echo "Missing required 'jq' dependency"; exit 1)
 
@@ -64,13 +66,13 @@ function init() {
 #        Signature expired: 20170103T233357Z is now earlier than 20170104T042623Z (20170104T044123Z - 15 min.)
 function sync_hwclock() {
   if [ -f "/.dockerenv" ]; then
-    hwclock -s 2>/dev/null
+    if [ -n "${NTP_SERVER}" ] && [ -n "${NTPD}" ]; then
+    ${NTPD} -d -q -n -p "${NTP_SERVER}" 
     if [ $? -ne 0 ]; then
-      echo "WARNING: unable to sync system time from hardware clock; you may encounter problems with signed requests as a result of time drift."
+      echo "WARNING: unable to sync time; requests might fail due to time drift"
     fi
   fi
 }
-
 
 ## Calculate the current shell prompt 
 function console-prompt() {
