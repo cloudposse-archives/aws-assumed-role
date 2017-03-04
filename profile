@@ -68,7 +68,7 @@ function sync_hwclock() {
   if [ -f "/.dockerenv" ]; then
     if [ -n "${NTP_SERVER}" ] && [ -n "${NTPD}" ]; then
       echo "Synchronizing clock..."
-      ${NTPD} -d -q -n -p "${NTP_SERVER}" >/dev/null
+      ${NTPD} -d -q -n -p "${NTP_SERVER}" >/dev/null 2>&1
       if [ $? -ne 0 ]; then
         echo "WARNING: unable to sync time; requests might fail due to time drift in docker"
       fi
