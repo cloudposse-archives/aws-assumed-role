@@ -64,7 +64,7 @@ function init() {
 # Sync Docker VM's hardware clock which can drift when host machine sleeps
 #   e.g. An error occurred (SignatureDoesNotMatch) when calling the AssumeRole operation:
 #        Signature expired: 20170103T233357Z is now earlier than 20170104T042623Z (20170104T044123Z - 15 min.)
-function sync_hwclock() {
+function sync_clock() {
   if [ -f "/.dockerenv" ]; then
     if [ -n "${NTP_SERVER}" ] && [ -n "${NTPD}" ]; then
       echo "Synchronizing clock..."
@@ -229,7 +229,7 @@ function assume-role() {
     return 1
   fi
 
-  sync_hwclock
+  sync_clock
 
   echo "Preparing to assume role associated with $AWS_DEFAULT_PROFILE"
 
