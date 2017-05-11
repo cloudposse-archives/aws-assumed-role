@@ -232,6 +232,10 @@ function use-profile() {
   unset AWS_IAM_MFA_SERIAL
   unset AWS_IAM_ROLE_ARN
 
+  sync_clock
+
+  echo "Preparing to assume role associated with $AWS_DEFAULT_PROFILE"
+
   export AWS_REGION=$(aws configure get region --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
   if [ -z "$AWS_REGION" ]; then
     echo "region not set for $AWS_DEFAULT_PROFILE profile"
@@ -272,7 +276,6 @@ function assume-role() {
   if [ -z "$AWS_IAM_ROLE_ARN" ]; then
     echo "role_arn not set $AWS_DEFAULT_PROFILE profile"
     return 1
-  fi
 
   if [ -z "$AWS_IAM_MFA_SERIAL" ]; then
     echo "mfa_serial not set $AWS_DEFAULT_PROFILE profile"
