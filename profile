@@ -276,6 +276,7 @@ function assume-role() {
   if [ -z "$AWS_IAM_ROLE_ARN" ]; then
     echo "role_arn not set $AWS_DEFAULT_PROFILE profile"
     return 1
+  fi 
 
   if [ -z "$AWS_IAM_MFA_SERIAL" ]; then
     echo "mfa_serial not set $AWS_DEFAULT_PROFILE profile"
