@@ -83,20 +83,20 @@ function console-prompt() {
 
   if [ -n "${AWS_SESSION_EXPIRATION}" ]; then
     if [ "${OS}" == "Darwin" ]; then
-      export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date -j -f "%Y-%m-%dT%H:%M:%SZ" "${AWS_SESSION_EXPIRATION}" +%s)
+      export AWS_SESSION_EXPIRATION_TIMESTAMP=$(TZ=GMT date -j -f "%Y-%m-%dT%H:%M:%SZ" "${AWS_SESSION_EXPIRATION}" +%s)
     else
       if [[ "`date --help 2>&1|head -1`" =~ BusyBox ]]; then
-        export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date -D "%Y-%m-%dT%H:%M:%SZ" --date="${AWS_SESSION_EXPIRATION}" +%s)
+        export AWS_SESSION_EXPIRATION_TIMESTAMP=$(TZ=GMT date -D "%Y-%m-%dT%H:%M:%SZ" --date="${AWS_SESSION_EXPIRATION}" +%s)
       else
-        export AWS_SESSION_EXPIRATION_SECONDS=$(TZ=GMT date --date="${AWS_SESSION_EXPIRATION}" +%s)
+        export AWS_SESSION_EXPIRATION_TIMESTAMP=$(TZ=GMT date --date="${AWS_SESSION_EXPIRATION}" +%s)
       fi
     fi
   else
-    export AWS_SESSION_EXPIRATION_SECONDS=0
+    export AWS_SESSION_EXPIRATION_TIMESTAMP=0
   fi
 
-  if [ $AWS_SESSION_EXPIRATION_SECONDS -ge 0 ]; then
-    export AWS_SESSION_TTL=$(($AWS_SESSION_EXPIRATION_SECONDS - ${NOW}))
+  if [ $AWS_SESSION_EXPIRATION_TIMESTAMP -ge 0 ]; then
+    export AWS_SESSION_TTL=$(($AWS_SESSION_EXPIRATION_TIMESTAMP - ${NOW}))
     if [ $AWS_SESSION_TTL -le 0 ]; then
       AWS_SESSION_TTL_FMT="\[\033[5mexpired\033[0m\]"
     else
@@ -106,14 +106,16 @@ function console-prompt() {
   fi
 
   if [ -z "${AWS_PROFILE}" ]; then
-    export ROLE_PROMPT="(\[${ERROR_COLOR}\]no assumed-role\[${NO_COLOR}\])"
-  else
+    export ROLE_PROMPT="(\[${ERROR_COLOR}\]no profile selected\[${NO_COLOR}\])"
+  elif [ -n "${AWS_IAM_ROLE_ARN}" ]; then
     if [[ ${AWS_ASSUME_ROLE_POLICY} =~ ops ]]; then
       ROLE_COLOR="$ERROR_COLOR"
     else
       ROLE_COLOR="$OK_COLOR"
     fi
     export ROLE_PROMPT="(assume-role \[${ROLE_COLOR}\]${AWS_DEFAULT_PROFILE}\[${NO_COLOR}\]:${AWS_SESSION_TTL_FMT})"
+  else
+    export ROLE_PROMPT="(profile \[${OK_COLOR}\]${AWS_DEFAULT_PROFILE}\[${NO_COLOR}\])"
   fi
   export PS1="$ROLE_PROMPT \W> "
 }
@@ -131,6 +133,7 @@ function help() {
   printf '  %-15s %s\n' 'leave-role' "Leave the current role; run this to release your session"
   printf '  %-15s %s\n' 'assume-role' "Assume a new role; run this to renew your session"
   printf '  %-15s %s\n' 'setup-role' "Setup a new role; run this to configure your AWS profile"
+  printf '  %-15s %s\n' 'use-profile' "Use a preconfigured profile; run this to use an AWS profile without assumed roles"
   echo
 }
 
@@ -181,6 +184,7 @@ function setup-role() {
 function leave-role() {
   if [ -n "$AWS_DEFAULT_PROFILE" ]; then
     find $HOME/.aws/cli/cache -name "${AWS_DEFAULT_PROFILE}*.json" -delete
+    find $HOME/.aws/cli/cache -name "${AWS_DEFAULT_PROFILE}" -delete
   fi
 
   unset AWS_ACCESS_KEY_ID
@@ -201,8 +205,8 @@ function leave-role() {
   fi
 }
 
-function assume-role() {
-    if [ -n "$1" ]; then
+function use-profile() {
+  if [ -n "$1" ]; then
       export AWS_DEFAULT_PROFILE=$1
     fi
 
@@ -210,13 +214,6 @@ function assume-role() {
     echo "AWS_DEFAULT_PROFILE not set"
     return 1
   fi
-
-  # Reset the environment, or the awscli call will fail
-  unset AWS_PROFILE
-  unset AWS_SESSION_TOKEN 
-  unset AWS_SECURITY_TOKEN
-  unset AWS_ACCESS_KEY_ID
-  unset AWS_SECRET_ACCESS_KEY
 
   if [ ! -f "${AWS_CONFIG_FILE}" ]; then
     echo "AWS Configuration does not exist. Run \`setup-role\` or \`aws configure\`."
@@ -229,18 +226,52 @@ function assume-role() {
     return 1
   fi
 
+  # Unset vars from previously assumed role 
+  unset AWS_SESSION_TOKEN 
+  unset AWS_SECURITY_TOKEN
+  unset AWS_IAM_MFA_SERIAL
+  unset AWS_IAM_ROLE_ARN
+
   sync_clock
 
   echo "Preparing to assume role associated with $AWS_DEFAULT_PROFILE"
 
   export AWS_REGION=$(aws configure get region --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
-  export AWS_IAM_ROLE_ARN=$(aws configure get role_arn --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
-  export AWS_IAM_MFA_SERIAL=$(aws configure get mfa_serial --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
-
   if [ -z "$AWS_REGION" ]; then
     echo "region not set for $AWS_DEFAULT_PROFILE profile"
     return 1
   fi
+
+  export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
+
+  if [ -z "$AWS_ACCESS_KEY_ID" ]; then
+    echo "aws_access_key_id not set for $AWS_DEFAULT_PROFILE profile"
+    return 1
+  fi
+
+  export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
+  if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+    echo "aws_secret_access_key not set for $AWS_DEFAULT_PROFILE profile"
+    return 1
+  fi
+
+  export AWS_PROFILE=${AWS_DEFAULT_PROFILE};
+
+  sync_clock
+}
+
+function assume-role() {
+  use-profile "$1"  
+  echo "Preparing to assume role associated with $AWS_DEFAULT_PROFILE"
+
+  # Reset the environment, or the awscli call will fail
+  unset AWS_PROFILE
+  unset AWS_ACCESS_KEY_ID
+  unset AWS_SECRET_ACCESS_KEY
+
+
+  export AWS_IAM_ROLE_ARN=$(aws configure get role_arn --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
+  export AWS_IAM_MFA_SERIAL=$(aws configure get mfa_serial --profile $AWS_DEFAULT_PROFILE 2>/dev/null)
 
   if [ -z "$AWS_IAM_ROLE_ARN" ]; then
     echo "role_arn not set $AWS_DEFAULT_PROFILE profile"
