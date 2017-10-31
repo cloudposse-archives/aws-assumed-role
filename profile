@@ -149,7 +149,7 @@ function update_profile() {
 
 function setup-role() {
   prompt AWS_PROFILE "What should we call this profile [no spaces]? (e.g. ops) " "ops"
-  prompt AWS_ACCOUNT_ID "What is your AWS Account ID? (e.g. 324149397721)"
+  prompt AWS_MAIN_ACCOUNT_ID "What is your main AWS Account ID? (e.g. 324149397721)"
   prompt AWS_ORGANIZATION_ACCOUNT_ID "What is your AWS Organization Account ID? (e.g. 324149397721)"
   prompt AWS_IAM_USERNAME "What is your AWS IAM Username? (e.g. erik)" `whoami`
   prompt AWS_IAM_ROLE "What is the IAM Role you wish to assume? (e.g. ops)" "ops"
@@ -158,7 +158,7 @@ function setup-role() {
   prompt AWS_REGION "What default region do you want? (e.g. us-east-1)" "us-east-1"
 
   AWS_IAM_ROLE_ARN="arn:aws:iam::${AWS_ORGANIZATION_ACCOUNT_ID}:role/${AWS_IAM_ROLE}"
-  AWS_IAM_MFA_SERIAL="arn:aws:iam::${AWS_ACCOUNT_ID}:mfa/${AWS_IAM_USERNAME}"
+  AWS_IAM_MFA_SERIAL="arn:aws:iam::${AWS_MAIN_ACCOUNT_ID}:mfa/${AWS_IAM_USERNAME}"
 
   # When creating a new/non-existent profile, the `aws configure` command gets confused if `AWS_PROFILE` or `AWS_DEFAULT_PROFILE`
   # are set to something which does not yet exist. Running it in `env` lets us sanify the environment. 
