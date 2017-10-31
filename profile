@@ -149,14 +149,15 @@ function update_profile() {
 
 function setup-role() {
   prompt AWS_PROFILE "What should we call this profile [no spaces]? (e.g. ops) " "ops"
-  prompt AWS_ACCOUNT_ID "What is your AWS Account ID? (e.g. 324149397721)" 
+  prompt AWS_ACCOUNT_ID "What is your AWS Account ID? (e.g. 324149397721)"
+  prompt AWS_ORGANIZATION_ACCOUNT_ID "What is your AWS Organization Account ID? (e.g. 324149397721)"
   prompt AWS_IAM_USERNAME "What is your AWS IAM Username? (e.g. erik)" `whoami`
   prompt AWS_IAM_ROLE "What is the IAM Role you wish to assume? (e.g. ops)" "ops"
   prompt AWS_ACCESS_KEY_ID "What is your AWS Access Key ID? (e.g. ZSIKIY1ZX44WRKCLS3GB)"
   prompt AWS_SECRET_ACCESS_KEY "What is your AWS Secret Access Key? (e.g. FW8qWWafMaUi+siNcRiawxr4GadKf6We1fl90G5x)"
   prompt AWS_REGION "What default region do you want? (e.g. us-east-1)" "us-east-1"
 
-  AWS_IAM_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${AWS_IAM_ROLE}"
+  AWS_IAM_ROLE_ARN="arn:aws:iam::${AWS_ORGANIZATION_ACCOUNT_ID}:role/${AWS_IAM_ROLE}"
   AWS_IAM_MFA_SERIAL="arn:aws:iam::${AWS_ACCOUNT_ID}:mfa/${AWS_IAM_USERNAME}"
 
   # When creating a new/non-existent profile, the `aws configure` command gets confused if `AWS_PROFILE` or `AWS_DEFAULT_PROFILE`
