@@ -156,6 +156,7 @@ function setup-role() {
   prompt AWS_ACCESS_KEY_ID "What is your AWS Access Key ID? (e.g. ZSIKIY1ZX44WRKCLS3GB)"
   prompt AWS_SECRET_ACCESS_KEY "What is your AWS Secret Access Key? (e.g. FW8qWWafMaUi+siNcRiawxr4GadKf6We1fl90G5x)"
   prompt AWS_REGION "What default region do you want? (e.g. us-east-1)" "us-east-1"
+  prompt USE_MFA "Use MFA? (yes/no)" "yes"
 
   AWS_IAM_ROLE_ARN="arn:aws:iam::${AWS_ORGANIZATION_ACCOUNT_ID}:role/${AWS_IAM_ROLE}"
   AWS_IAM_MFA_SERIAL="arn:aws:iam::${AWS_MAIN_ACCOUNT_ID}:mfa/${AWS_IAM_USERNAME}"
@@ -164,7 +165,9 @@ function setup-role() {
   # are set to something which does not yet exist. Running it in `env` lets us sanify the environment. 
   env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set "profile.${AWS_PROFILE}.region" "$AWS_REGION"
   env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set "profile.${AWS_PROFILE}.role_arn" "$AWS_IAM_ROLE_ARN"
-  env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set "profile.${AWS_PROFILE}.mfa_serial" "$AWS_IAM_MFA_SERIAL"
+  if [ "${USE_MFA}" == "yes" ]; then
+    env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set "profile.${AWS_PROFILE}.mfa_serial" "$AWS_IAM_MFA_SERIAL"
+  fi
   env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set "profile.${AWS_PROFILE}.source_profile" "$AWS_PROFILE"
   env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID" --profile $AWS_PROFILE
   env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY" --profile $AWS_PROFILE
@@ -184,8 +187,8 @@ function setup-role() {
 ## Leave the currently assumed role
 function leave-role() {
   if [ -n "$AWS_DEFAULT_PROFILE" ]; then
-    find $HOME/.aws/cli/cache -name "${AWS_DEFAULT_PROFILE}*.json" -delete
-    find $HOME/.aws/cli/cache -name "${AWS_DEFAULT_PROFILE}" -delete
+    find ${AWS_DATA_PATH}/cli/cache -name "${AWS_DEFAULT_PROFILE}*.json" -delete
+    find ${AWS_DATA_PATH}/cli/cache -name "${AWS_DEFAULT_PROFILE}" -delete
   fi
 
   unset AWS_ACCESS_KEY_ID
@@ -279,21 +282,18 @@ function assume-role() {
     return 1
   fi
 
-  if [ -z "$AWS_IAM_MFA_SERIAL" ]; then
-    echo "mfa_serial not set $AWS_DEFAULT_PROFILE profile"
-    return 1
-  fi
-
   echo "region=$AWS_REGION"
   echo "role_arn=$AWS_IAM_ROLE_ARN"
-  echo "mfa_serial=$AWS_IAM_MFA_SERIAL"
+  if [ -n "${AWS_IAM_MFA_SERIAL}" ]; then
+    echo "mfa_serial=$AWS_IAM_MFA_SERIAL"
+  fi
 
   until aws ec2 describe-regions > /dev/null; do
     echo "Retrying..."
     sleep 1
   done
 
-  TMP_FILE=$(find $HOME/.aws/cli/cache -name "${AWS_DEFAULT_PROFILE}*.json" | head -1)
+  TMP_FILE=$(find ${AWS_DATA_PATH}/cli/cache -name "${AWS_DEFAULT_PROFILE}*.json" | head -1)
   if [ -f "$TMP_FILE" ]; then
     export AWS_PROFILE="$AWS_DEFAULT_PROFILE-session"
     export AWS_ACCESS_KEY_ID=$(cat ${TMP_FILE} | jq -r ".Credentials.AccessKeyId")
